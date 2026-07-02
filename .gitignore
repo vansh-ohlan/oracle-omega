@@ -1,0 +1,28 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Env / secrets
+.env
+.env.local
+
+# ML artifacts (large binary files, don't commit)
+ml/artifacts/*.pkl
+ml/artifacts/*.joblib
+
+# OS/editor
+.DS_Store
+.vscode/
+*.log
+
+# Docker
+postgres_data/
+chroma_data/
