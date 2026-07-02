@@ -16,7 +16,7 @@ export default function DailyLoggerPage() {
   const [confidence, setConfidence] = useState(5);
   const [thought, setThought] = useState("");
   const [activities, setActivities] = useState<Activity[]>([
-    { name: "", type: "class", time: "", understanding_pct: 50 },
+    { name: "", type: "class", time: "", understanding_pct: 50, notes: "" },
   ]);
 
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -38,7 +38,10 @@ export default function DailyLoggerPage() {
   }
 
   function addActivity() {
-    setActivities((prev) => [...prev, { name: "", type: "class", time: "", understanding_pct: 50 }]);
+    setActivities((prev) => [
+      ...prev,
+      { name: "", type: "class", time: "", understanding_pct: 50, notes: "" },
+    ]);
   }
 
   function removeActivity(index: number) {
@@ -175,6 +178,13 @@ export default function DailyLoggerPage() {
                       className="bg-neutral-900 border border-neutral-800 rounded-md px-2 py-2 text-sm"
                     />
                   </div>
+                  <textarea
+                    placeholder="What did you feel or notice during this?"
+                    value={activity.notes ?? ""}
+                    onChange={(e) => updateActivity(i, "notes", e.target.value)}
+                    rows={2}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm"
+                  />
                 </div>
               ))}
             </div>
@@ -219,12 +229,12 @@ export default function DailyLoggerPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-400 mb-1">Thought / note</label>
+            <label className="block text-sm text-neutral-400 mb-1">Overall thought / note</label>
             <textarea
               value={thought}
               onChange={(e) => setThought(e.target.value)}
               rows={3}
-              placeholder="What's on your mind?"
+              placeholder="What's on your mind overall today?"
               className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm"
             />
           </div>
