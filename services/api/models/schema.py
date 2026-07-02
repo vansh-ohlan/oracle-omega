@@ -12,6 +12,8 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
     timezone = Column(String, default="UTC")
     created_at = Column(DateTime, server_default=func.now())
 
@@ -23,9 +25,7 @@ class DailyLog(Base):
     date = Column(Date, nullable=False)
     sleep_hours = Column(Float)
     workout_json = Column(JSON)
-    class_name = Column(String)
-    understanding_pct = Column(Integer)
-    attendance_status = Column(String)
+    activities_json = Column(JSON)  # list of {name, type, time, understanding_pct, notes}
     mood = Column(Integer)
     stress = Column(Integer)
     confidence = Column(Integer)

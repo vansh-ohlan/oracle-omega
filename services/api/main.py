@@ -1,12 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 from database import engine, get_db
-from models.schema import DailyLog
-from schemas import DailyLogCreate, DailyLogOut
+from models.schema import DailyLog, User
+from schemas import DailyLogCreate, DailyLogOut, UserRegister, UserLogin, UserOut, Token
+from auth import hash_password, verify_password, create_access_token, get_current_user
 
 load_dotenv()
 
@@ -37,24 +39,72 @@ def health_check():
     return {"status": "ok", "database": db_status}
 
 
+# ---- Auth ----
+
+@app.post("/auth/register", response_model=Token)
+def register(payload: UserRegister, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user = User(
+        name=payload.name,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+        timezone=payload.timezone,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token({"sub": str(user.id)})
+    return Token(access_token=token, user=UserOut.model_validate(user))
+
+
+@app.post("/auth/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    token = create_access_token({"sub": str(user.id)})
+    return Token(access_token=token, user=UserOut.model_validate(user))
+
+
+@app.get("/auth/me", response_model=UserOut)
+def read_current_user(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+# ---- Daily Logs (now require auth) ----
+
 @app.post("/daily-logs", response_model=DailyLogOut)
-def create_daily_log(log: DailyLogCreate, db: Session = Depends(get_db)):
-    db_log = DailyLog(**log.model_dump())
+def create_daily_log(
+    log: DailyLogCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = log.model_dump()
+    if data.get("activities_json") is not None:
+        data["activities_json"] = [a for a in data["activities_json"]]
+    db_log = DailyLog(**data, user_id=current_user.id)
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
     return db_log
 
 
-@app.get("/daily-logs/{user_id}", response_model=list[DailyLogOut])
-def get_daily_logs(user_id: int, db: Session = Depends(get_db)):
-    logs = db.query(DailyLog).filter(DailyLog.user_id == user_id).order_by(DailyLog.date.desc()).all()
+@app.get("/daily-logs", response_model=list[DailyLogOut])
+def get_my_daily_logs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    logs = (
+        db.query(DailyLog)
+        .filter(DailyLog.user_id == current_user.id)
+        .order_by(DailyLog.date.desc())
+        .all()
+    )
     return logs
-
-
-@app.get("/daily-logs/entry/{log_id}", response_model=DailyLogOut)
-def get_daily_log(log_id: int, db: Session = Depends(get_db)):
-    log = db.query(DailyLog).filter(DailyLog.id == log_id).first()
-    if not log:
-        raise HTTPException(status_code=404, detail="Log not found")
-    return log
