@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createDailyLog, Activity } from "@/lib/api";
 import { isLoggedIn, clearToken } from "@/lib/auth";
 
@@ -85,12 +86,20 @@ export default function DailyLoggerPage() {
               Module 2 — feeds every other prediction in ORACLE Ω.
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-neutral-500 hover:text-neutral-300 transition"
-          >
-            Log out
-          </button>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/history"
+              className="text-sm text-neutral-300 border border-neutral-700 rounded-md px-3 py-1.5 hover:bg-neutral-800 transition"
+            >
+              History
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-neutral-500 hover:text-neutral-300 transition"
+            >
+              Log out
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

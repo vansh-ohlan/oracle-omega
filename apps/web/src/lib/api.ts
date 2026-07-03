@@ -95,3 +95,11 @@ export async function getMyDailyLogs(): Promise<DailyLogOut[]> {
   if (!res.ok) throw new Error("Failed to fetch daily logs");
   return res.json();
 }
+
+export async function deleteDailyLog(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/daily-logs/${id}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error("Failed to delete daily log");
+}

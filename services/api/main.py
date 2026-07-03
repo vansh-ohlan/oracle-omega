@@ -78,7 +78,7 @@ def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# ---- Daily Logs (now require auth) ----
+# ---- Daily Logs (require auth) ----
 
 @app.post("/daily-logs", response_model=DailyLogOut)
 def create_daily_log(
@@ -87,8 +87,6 @@ def create_daily_log(
     current_user: User = Depends(get_current_user),
 ):
     data = log.model_dump()
-    if data.get("activities_json") is not None:
-        data["activities_json"] = [a for a in data["activities_json"]]
     db_log = DailyLog(**data, user_id=current_user.id)
     db.add(db_log)
     db.commit()
@@ -108,3 +106,22 @@ def get_my_daily_logs(
         .all()
     )
     return logs
+
+
+@app.delete("/daily-logs/{log_id}")
+def delete_daily_log(
+    log_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    log = (
+        db.query(DailyLog)
+        .filter(DailyLog.id == log_id, DailyLog.user_id == current_user.id)
+        .first()
+    )
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    db.delete(log)
+    db.commit()
+    return {"deleted": True, "id": log_id}
